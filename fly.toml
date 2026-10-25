@@ -1,0 +1,35 @@
+# fly launch --no-deploy 후 app 이름 수정 → fly secrets set CS_API_KEY=... → fly deploy
+app = "cabinshield-api"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  CS_ENV = "prod"
+  CS_PLANNER = "rule"
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1     # 세션이 메모리에 있으므로 최소 1대 유지, 그리고 1대만 운용
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 200
+    hard_limit = 250
+
+[[http_service.checks]]
+  path = "/healthz"
+  interval = "15s"
+  timeout = "3s"
+  grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[mounts]
+  source = "cabinshield_data"
+  destination = "/srv/data"

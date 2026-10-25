@@ -1,0 +1,22 @@
+# Render Blueprint — 대시보드에서 "New > Blueprint"로 레포 연결
+services:
+  - type: web
+    name: cabinshield-api
+    runtime: docker
+    plan: free            # 무료 플랜은 15분 idle 시 슬립 → 발표 직전 /healthz 호출로 깨우기
+    region: singapore
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: CS_ENV
+        value: prod
+      - key: CS_API_KEY
+        generateValue: true
+      - key: CS_CORS_ORIGINS
+        value: "*"
+      - key: CS_PLANNER
+        value: rule
+      - key: CS_ANTHROPIC_API_KEY
+        sync: false
+      - key: CS_ANTHROPIC_MODEL
+        sync: false
