@@ -1,9 +1,4 @@
-from app.config import Settings
+from app.planner.llm import llm_insights
+from app.planner.rule_based import MODE_LABEL, plan_services, rule_insights
 
-
-def make_planner(settings: Settings):
-    if settings.planner == "llm" and settings.anthropic_api_key and settings.anthropic_model:
-        from app.planner.llm import LlmPlanner
-        return LlmPlanner(settings)
-    from app.planner.rule_based import RuleBasedPlanner
-    return RuleBasedPlanner()
+__all__ = ["MODE_LABEL", "llm_insights", "plan_services", "rule_insights"]

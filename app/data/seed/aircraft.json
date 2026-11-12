@@ -1,0 +1,87 @@
+{
+  "B787-9": {
+    "crew": [
+      {
+        "pos": "L1",
+        "role": {
+          "ko": "사무장",
+          "en": "Purser"
+        }
+      },
+      {
+        "pos": "R1",
+        "role": null
+      },
+      {
+        "pos": "L2",
+        "role": null
+      },
+      {
+        "pos": "R2",
+        "role": null
+      },
+      {
+        "pos": "G2",
+        "role": {
+          "ko": "갤리",
+          "en": "Galley"
+        }
+      },
+      {
+        "pos": "L3",
+        "role": null
+      },
+      {
+        "pos": "R3",
+        "role": null
+      },
+      {
+        "pos": "L4",
+        "role": null
+      },
+      {
+        "pos": "R4",
+        "role": null
+      },
+      {
+        "pos": "G4",
+        "role": {
+          "ko": "갤리",
+          "en": "Galley"
+        }
+      }
+    ],
+    "rest_groups": {
+      "A": [
+        "R1",
+        "L3",
+        "R4"
+      ],
+      "B": [
+        "L2",
+        "R3",
+        "G4"
+      ]
+    },
+    "crew_zone": [
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2
+    ],
+    "cart_zone": [
+      0,
+      1,
+      2,
+      2
+    ],
+    "lavatories": 6,
+    "galleys": 3
+  }
+}

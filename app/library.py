@@ -1,70 +1,95 @@
-"""승인된 행동 라이브러리.
+"""Reference data shipped to the tablet before departure (works offline afterwards).
 
-생성형 AI는 여기 정의된 action_id만 조합할 수 있다. 소요시간은 로그정규 분포
-(median, sigma)로 관리하며, 값은 팀 측정 전 설명용 placeholder다.
-→ 실제 측정 후 `data/action_times.json` 등으로 교체할 것.
+Seed JSON lives in `app/data/seed/` and mirrors the crew app's content:
+schedule, response protocol (P1/P2/P3 to-dos and announcements), aircraft cabin layout,
+service catalogue, map places/airports, past turbulence reports and the default forecast.
+All strings are bilingual `{"ko": ..., "en": ...}`. Demo values only.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Literal
+import datetime as dt
+import hashlib
+import json
+from functools import lru_cache
+from pathlib import Path
 
-TargetKind = Literal["NONE", "CART", "LAV", "GALLEY", "ZONE"]
-
-
-@dataclass(frozen=True)
-class ActionDef:
-    id: str
-    name_ko: str
-    target: TargetKind
-    median_s: float
-    sigma: float = 0.2                       # lognormal sigma
-    moves_crew_to_target: bool = True        # 수행 위치로 이동해야 하는가
-    terminal: bool = False                   # 자기보호(이후 다른 행동 금지)
-    description: str = ""
-    tags: tuple[str, ...] = field(default_factory=tuple)
+SEED = Path(__file__).resolve().parent / "data" / "seed"
+KST = dt.timezone(dt.timedelta(hours=9))
 
 
-TRAVEL_PER_ZONE = ActionDef("_TRAVEL", "구역 이동", "NONE", 6.0, 0.25, False)
-CART_TRAVEL_PER_ZONE_S = 10.0                # 카트 밀고 이동 시 구역당 추가시간(median)
-ACK_DELAY = ActionDef("_ACK", "경고 인지·확인", "NONE", 3.0, 0.3, False)
-
-ACTIONS: dict[str, ActionDef] = {a.id: a for a in [
-    ActionDef("STOP_SERVICE", "서비스 즉시 중단", "NONE", 2.0, 0.2, False,
-              description="진행 중 서비스를 중단하고 승객 응대를 멈춘다."),
-    ActionDef("STOW_HOT_LIQUID", "뜨거운 음료 수납", "CART", 7.0, 0.2,
-              description="카트 위 포트·컵을 카트 내부에 수납."),
-    ActionDef("SECURE_CART_IN_PLACE", "카트 현장 고정", "CART", 6.0, 0.2,
-              description="통로에서 브레이크 체결 + 승객 좌석 측 고정."),
-    ActionDef("RETURN_CART_TO_GALLEY", "카트 갤리 복귀·잠금", "CART", 8.0, 0.25,
-              description="가장 가까운 갤리로 카트를 이동 후 잠금. 이동시간 별도 가산."),
-    ActionDef("LAV_PAX_GUIDANCE", "화장실 승객 안내", "LAV", 10.0, 0.3,
-              description="노크 후 즉시 착석/손잡이 파지 안내."),
-    ActionDef("SECURE_GALLEY", "갤리 정리·잠금", "GALLEY", 12.0, 0.25,
-              description="갤리 컨테이너·도어 잠금."),
-    ActionDef("PA_SEATBELT", "좌석벨트 PA", "NONE", 5.0, 0.15, False,
-              description="가까운 핸드셋으로 좌석벨트 착용 방송."),
-    ActionDef("CABIN_CHECK_ZONE", "구역 좌석벨트 확인", "ZONE", 8.0, 0.25,
-              description="담당 구역 승객 착용 육안 확인."),
-    ActionDef("CREW_SELF_PROTECT", "승무원 자기보호(착석)", "NONE", 5.0, 0.2, False, True,
-              description="가장 가까운 점프싯/빈 좌석 착석·벨트 체결. 마지막 행동이어야 함."),
-]}
+def _read(name: str):
+    return json.loads((SEED / name).read_text(encoding="utf-8"))
 
 
-# 잔여위험 가중치 (설명용). Safety Kernel이 후보 비교에 사용.
-HAZARD_WEIGHTS = {
-    "HOT_LIQUID": 3.0,
-    "CART_AISLE_UNSECURED": 4.0,
-    "CART_AISLE_SECURED": 1.0,
-    "LAV_OCCUPIED": 2.0,
-    "GALLEY_UNSECURED": 1.0,
-    "SERVICE_ACTIVE": 0.5,
-}
+@lru_cache
+def schedule() -> dict[str, dict]:
+    return {f["flight_no"]: f for f in _read("schedule.json")}
 
 
-def library_as_dict() -> list[dict]:
-    return [
-        {"id": a.id, "name_ko": a.name_ko, "target": a.target, "median_s": a.median_s,
-         "sigma": a.sigma, "terminal": a.terminal, "description": a.description}
-        for a in ACTIONS.values()
-    ]
+@lru_cache
+def protocol() -> dict:
+    return _read("protocol.json")
+
+
+def point_leads() -> list[float]:
+    return [float(p["lead_s"]) for p in protocol()["points"]]
+
+
+@lru_cache
+def aircraft() -> dict:
+    return _read("aircraft.json")
+
+
+@lru_cache
+def services() -> list[dict]:
+    return _read("services.json")
+
+
+@lru_cache
+def places() -> dict:
+    return _read("places.json")
+
+
+def history(route_id: str) -> list[dict]:
+    p = SEED / f"history_{route_id}.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+
+
+def default_hazards(route_id: str) -> list[dict]:
+    p = SEED / f"hazards_{route_id}.json"
+    return json.loads(p.read_text(encoding="utf-8"))["hazards"] if p.exists() else []
+
+
+@lru_cache
+def strength_labels() -> list[dict]:
+    return json.loads((SEED / "hazards_ICN-SFO.json").read_text(encoding="utf-8"))["strength"]
+
+
+@lru_cache
+def reference_bundle() -> dict:
+    body = {"protocol": protocol(), "aircraft": aircraft(), "services": services(), "places": places()["places"],
+            "airports": places()["airports"], "strength": strength_labels()}
+    version = hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+    return {"version": version, **body}
+
+
+def normalise_flight_no(s: str) -> str:
+    return "".join(ch for ch in s.upper() if ch.isalnum())[:8]
+
+
+def operates_on(f: dict, day: dt.date) -> bool:
+    return (day.isoweekday() % 7) in f["days"]  # 0 = Sunday, like the app
+
+
+def next_operating_date(f: dict, day: dt.date, horizon: int = 14) -> dt.date | None:
+    for i in range(horizon):
+        d = day + dt.timedelta(days=i)
+        if operates_on(f, d):
+            return d
+    return None
+
+
+def departure_utc(day: dt.date, dep_local: str) -> dt.datetime:
+    """Scheduled departure (Korea time HH:MM on `day`) as an aware UTC datetime."""
+    hh, mm = map(int, dep_local.split(":"))
+    return dt.datetime(day.year, day.month, day.day, hh, mm, tzinfo=KST).astimezone(dt.timezone.utc)

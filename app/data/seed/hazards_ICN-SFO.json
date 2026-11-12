@@ -1,0 +1,97 @@
+{
+  "strength": [
+    {
+      "ko": "",
+      "en": ""
+    },
+    {
+      "ko": "약함",
+      "en": "light"
+    },
+    {
+      "ko": "보통",
+      "en": "moderate"
+    },
+    {
+      "ko": "심함",
+      "en": "severe"
+    }
+  ],
+  "hazards": [
+    {
+      "id": "HZ1",
+      "name": {
+        "ko": "후쿠오카 FIR · 일본 북부 해상",
+        "en": "Fukuoka FIR · off northern Japan"
+      },
+      "fl": [
+        300,
+        400
+      ],
+      "f": 0.2,
+      "off_nm": -55,
+      "r_nm": 120,
+      "drift_kt": 18,
+      "shape": [
+        1,
+        0.8,
+        1.15,
+        0.9,
+        1.2,
+        0.85,
+        1.05,
+        0.95
+      ]
+    },
+    {
+      "id": "HZ2",
+      "name": {
+        "ko": "앵커리지 해양 · 알류샨 남쪽",
+        "en": "Anchorage Oceanic · south of the Aleutians"
+      },
+      "fl": [
+        320,
+        410
+      ],
+      "f": 0.5,
+      "off_nm": 30,
+      "r_nm": 150,
+      "drift_kt": 25,
+      "shape": [
+        0.9,
+        1.1,
+        1,
+        1.25,
+        0.85,
+        1,
+        1.15,
+        0.8
+      ]
+    },
+    {
+      "id": "HZ3",
+      "name": {
+        "ko": "오클랜드 해양 · 미국 서해안 앞",
+        "en": "Oakland Oceanic · off the US West Coast"
+      },
+      "fl": [
+        280,
+        400
+      ],
+      "f": 0.81,
+      "off_nm": -85,
+      "r_nm": 110,
+      "drift_kt": 15,
+      "shape": [
+        1.1,
+        0.9,
+        1,
+        0.8,
+        1.15,
+        1.05,
+        0.9,
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "points": [
+    {
+      "n": 1,
+      "lead_s": 1380,
+      "name": {
+        "ko": "사전 준비",
+        "en": "Preparation"
+      },
+      "tag": "PREPARATION",
+      "todo": [
+        {
+          "ko": "조종실로부터 난기류 예상 정보 수신",
+          "en": "Receive the turbulence forecast from the flight deck"
+        },
+        {
+          "ko": "예상 난기류 강도와 위치 확인",
+          "en": "Check the expected intensity and location"
+        },
+        {
+          "ko": "객실승무원에게 사전 상황 공유",
+          "en": "Brief the cabin crew"
+        },
+        {
+          "ko": "담당 구역별 안전 점검 준비",
+          "en": "Prepare safety checks for each zone"
+        },
+        {
+          "ko": "승무원 간 업무 분담과 대응 계획 확인",
+          "en": "Confirm task split and response plan"
+        }
+      ],
+      "short": [
+        {
+          "ko": "조종실 정보 수신 · 강도와 위치 확인",
+          "en": "Flight deck info · intensity and location"
+        },
+        {
+          "ko": "승무원 상황 공유",
+          "en": "Brief the crew"
+        },
+        {
+          "ko": "업무 분담 · 점검 준비",
+          "en": "Split tasks · prepare checks"
+        }
+      ],
+      "say_label": {
+        "ko": "승무원 공유 예시",
+        "en": "Crew briefing example"
+      },
+      "say": {
+        "ko": "조종실 정보입니다. 진행 경로 앞쪽에 1포인트 구간이 있습니다. 담당 구역 점검을 준비하고, 서비스 마무리 순서를 확인해 주세요.",
+        "en": "Flight deck update: Point 1 segment ahead on our route. Prepare your zone checks and confirm how we wrap up the service."
+      }
+    },
+    {
+      "n": 2,
+      "lead_s": 780,
+      "name": {
+        "ko": "객실 정리",
+        "en": "Cabin securing"
+      },
+      "tag": "CABIN SECURING",
+      "todo": [
+        {
+          "ko": "기내 서비스 종료 준비, 진행 상황 확인",
+          "en": "Prepare to end the service and check progress"
+        },
+        {
+          "ko": "서비스 카트와 갤리 장비 정리",
+          "en": "Stow service carts and galley equipment"
+        },
+        {
+          "ko": "뜨거운 음료와 위험 물품 정리",
+          "en": "Clear hot drinks and loose items"
+        },
+        {
+          "ko": "통로와 비상구 주변 장애물 확인",
+          "en": "Check aisles and exits for obstructions"
+        },
+        {
+          "ko": "승객 안전벨트 착용 안내 시작",
+          "en": "Start seatbelt announcements to passengers"
+        }
+      ],
+      "short": [
+        {
+          "ko": "서비스 종료 준비",
+          "en": "Prepare to end service"
+        },
+        {
+          "ko": "카트 · 갤리 · 뜨거운 음료 정리",
+          "en": "Carts · galley · hot drinks"
+        },
+        {
+          "ko": "통로 확인 · 벨트 안내 시작",
+          "en": "Check aisles · seatbelt PA"
+        }
+      ],
+      "say_label": {
+        "ko": "안내방송 예시",
+        "en": "PA announcement example"
+      },
+      "say": {
+        "ko": "손님 여러분, 잠시 후 비행기가 흔들릴 수 있습니다. 자리에 계신 동안에는 좌석벨트를 매 주시고, 화장실 이용은 잠시 미뤄 주시기 바랍니다.",
+        "en": "Ladies and gentlemen, we may experience some turbulence shortly. Please keep your seatbelt fastened while seated and hold off on using the lavatories for now."
+      }
+    },
+    {
+      "n": 3,
+      "lead_s": 300,
+      "name": {
+        "ko": "최종 안전 확보",
+        "en": "Final safety check"
+      },
+      "tag": "FINAL SAFETY CHECK",
+      "todo": [
+        {
+          "ko": "기내 서비스 완전 중단",
+          "en": "Stop the service completely"
+        },
+        {
+          "ko": "서비스 카트와 갤리 장비 고정 완료",
+          "en": "Secure carts and galley equipment"
+        },
+        {
+          "ko": "승객 착석과 안전벨트 착용 확인",
+          "en": "Confirm passengers are seated and belted"
+        },
+        {
+          "ko": "담당 구역 최종 점검 (안전하게 가능한 경우)",
+          "en": "Final zone check (only if safe)"
+        },
+        {
+          "ko": "지정 좌석에 착석하고 안전벨트 체결",
+          "en": "Take your jump seat and fasten your belt"
+        },
+        {
+          "ko": "조종실에 객실 준비 완료 보고",
+          "en": "Report cabin secure to the flight deck"
+        }
+      ],
+      "short": [
+        {
+          "ko": "서비스 완전 중단 · 장비 고정",
+          "en": "Stop service · secure equipment"
+        },
+        {
+          "ko": "승객 착석 · 벨트 확인",
+          "en": "Passengers seated · belts"
+        },
+        {
+          "ko": "승무원 착석 · 조종실 보고",
+          "en": "Crew seated · report"
+        }
+      ],
+      "say_label": {
+        "ko": "안내방송 예시",
+        "en": "PA announcement example"
+      },
+      "say": {
+        "ko": "좌석벨트 표시등이 켜졌습니다. 지금 바로 자리에 앉아 좌석벨트를 단단히 매 주십시오. 승무원도 착석합니다.",
+        "en": "The seatbelt sign is on. Please return to your seat now and fasten your seatbelt securely. Cabin crew, please be seated."
+      }
+    }
+  ],
+  "stay": {
+    "todo": [
+      {
+        "ko": "자리에서 벨트를 맨 채 기다리세요",
+        "en": "Stay seated with your belt fastened"
+      },
+      {
+        "ko": "일어나거나 카트를 움직이지 마세요",
+        "en": "Do not get up or move carts"
+      },
+      {
+        "ko": "조종실 해제 안내를 기다리세요",
+        "en": "Wait for the flight deck all-clear"
+      }
+    ],
+    "say_label": {
+      "ko": "안내방송 예시",
+      "en": "PA announcement example"
+    },
+    "say": {
+      "ko": "비행기가 심하게 흔들리고 있습니다. 좌석벨트를 단단히 매고 자리에 앉아 계십시오.",
+      "en": "We are experiencing strong turbulence. Please remain seated with your seatbelt securely fastened."
+    }
+  },
+  "after": {
+    "todo": [
+      {
+        "ko": "조종실 해제 안내를 확인하세요",
+        "en": "Confirm the flight deck all-clear"
+      },
+      {
+        "ko": "객실과 승객 상태를 살펴보세요",
+        "en": "Check the cabin and passengers"
+      },
+      {
+        "ko": "안내가 나오면 서비스를 다시 시작하세요",
+        "en": "Resume service once cleared"
+      }
+    ],
+    "say_label": {
+      "ko": "안내방송 예시",
+      "en": "PA announcement example"
+    },
+    "say": {
+      "ko": "흔들림 구간을 지났습니다. 좌석벨트 표시등이 꺼질 때까지 자리에서 벨트를 매 주시기 바랍니다.",
+      "en": "We have passed the area of turbulence. Please keep your seatbelt fastened until the sign is turned off."
+    }
+  }
+}

@@ -1,0 +1,106 @@
+[
+  {
+    "id": "H1",
+    "d0_nm": 686.9,
+    "d1_nm": 1226.6,
+    "name": {
+      "ko": "일본 북부 · 쿠릴 열도 동쪽",
+      "en": "Northern Japan · east of the Kurils"
+    },
+    "cases": 18,
+    "fl_band": [
+      330,
+      370
+    ],
+    "pattern": {
+      "ko": "제트기류 · 청천난류(CAT) 보고",
+      "en": "Jet stream · clear-air turbulence (CAT)"
+    },
+    "severity": {
+      "ko": "보통 위주 · 심함 3건",
+      "en": "Mostly moderate · 3 severe"
+    },
+    "season": {
+      "ko": "11~2월에 집중",
+      "en": "Mostly Nov–Feb"
+    }
+  },
+  {
+    "id": "H2",
+    "d0_nm": 2207.9,
+    "d1_nm": 2796.6,
+    "name": {
+      "ko": "알류샨 열도 남쪽",
+      "en": "South of the Aleutians"
+    },
+    "cases": 27,
+    "fl_band": [
+      340,
+      380
+    ],
+    "pattern": {
+      "ko": "저기압 전선 · 제트기류 남하",
+      "en": "Frontal lows · jet stream dips"
+    },
+    "severity": {
+      "ko": "심함 6건",
+      "en": "6 severe"
+    },
+    "season": {
+      "ko": "연중, 겨울에 증가",
+      "en": "Year-round, more in winter"
+    }
+  },
+  {
+    "id": "H3",
+    "d0_nm": 3091,
+    "d1_nm": 3385.4,
+    "name": {
+      "ko": "알래스카만 남서쪽",
+      "en": "Southwest Gulf of Alaska"
+    },
+    "cases": 11,
+    "fl_band": [
+      350,
+      390
+    ],
+    "pattern": {
+      "ko": "청천난류(CAT) 보고",
+      "en": "Clear-air turbulence (CAT)"
+    },
+    "severity": {
+      "ko": "보통 위주",
+      "en": "Mostly moderate"
+    },
+    "season": {
+      "ko": "겨울철",
+      "en": "Winter"
+    }
+  },
+  {
+    "id": "H4",
+    "d0_nm": 3876,
+    "d1_nm": 4219.5,
+    "name": {
+      "ko": "미국 서해안 앞바다",
+      "en": "Off the US West Coast"
+    },
+    "cases": 9,
+    "fl_band": [
+      300,
+      360
+    ],
+    "pattern": {
+      "ko": "해안 제트 · 대류운",
+      "en": "Coastal jet · convection"
+    },
+    "severity": {
+      "ko": "약함 위주",
+      "en": "Mostly light"
+    },
+    "season": {
+      "ko": "봄·가을",
+      "en": "Spring and autumn"
+    }
+  }
+]

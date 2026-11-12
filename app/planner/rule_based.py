@@ -1,96 +1,99 @@
-"""규칙 기반 후보 생성기 (LLM 미사용 시 기본값, LLM 실패 시 폴백).
+"""Rule-based planners.
 
-후보: FULL(완전 정리) / MINIMAL(현장 고정 위주)  (+ 커널이 IMMEDIATE 추가)
-승무원 배정은 중앙값 기준 그리디(가장 빨리 도착 가능한 승무원)로 한다.
+* `plan_services` — moves or simplifies cabin services so they do not overlap forecast segments
+  (plus a lead-time dependent buffer). Started services are frozen. Port of `src/domain/planner.ts`.
+* `rule_insights` — matches upcoming forecast segments with past similar reports and writes the
+  short explanation shown in the app's "AI insight" panel.
 """
 from __future__ import annotations
 
-from app.engine.cst import nearest_galley
-from app.library import ACTIONS, CART_TRAVEL_PER_ZONE_S, TRAVEL_PER_ZONE
-from app.models import ZONE_INDEX, CabinState, CartStatus, Plan, PlanStep, Zone
+from app.engine.flight import Exposure
+
+MODE_LABEL = {
+    "normal": {"ko": "정상", "en": "Normal"},
+    "simplified": {"ko": "간소화", "en": "Simplified"},
+    "skipped": {"ko": "생략", "en": "Skipped"},
+    "purser": {"ko": "사무장 결정", "en": "Purser decides"},
+}
 
 
-class _Greedy:
-    def __init__(self, cabin: CabinState):
-        self.cabin = cabin
-        self.t = {c.id: 0.0 for c in cabin.crew}
-        self.z = {c.id: c.zone for c in cabin.crew}
-        self.steps: list[PlanStep] = []
-
-    def _eta(self, crew_id: str, zone: Zone) -> float:
-        return self.t[crew_id] + TRAVEL_PER_ZONE.median_s * abs(ZONE_INDEX[zone] - ZONE_INDEX[self.z[crew_id]])
-
-    def assign(self, action_id: str, zone: Zone, target_id: str | None = None,
-               crew_id: str | None = None, end_zone: Zone | None = None, extra: float = 0.0) -> str:
-        cid = crew_id or min(self.t, key=lambda c: (self._eta(c, zone), c))
-        self.t[cid] = self._eta(cid, zone) + ACTIONS[action_id].median_s + extra
-        self.z[cid] = end_zone or zone
-        self.steps.append(PlanStep(action_id=action_id, crew_id=cid, target_id=target_id))
-        return cid
-
-    def finish(self) -> list[PlanStep]:
-        for c in self.cabin.crew:
-            self.steps.append(PlanStep(action_id="CREW_SELF_PROTECT", crew_id=c.id))
-        return self.steps
+def buffer_before(e: Exposure, now: float) -> float:
+    return 600 + 120 * max(0.0, (e.t0 - now) / 3600)
 
 
-def _aisle_carts(cabin: CabinState):
-    return [c for c in cabin.carts if c.status != CartStatus.STOWED]
+def plan_services(services: list[dict], now: float, eta: float, ex: list[Exposure], prev: list[dict] | None) -> list[dict]:
+    latest = eta - 40 * 60
+    blocks = [(e.t0 - buffer_before(e, now), e.t1 + 600) for e in ex]
+
+    def free(a: float, b: float) -> bool:
+        return all(b <= x or a >= y for x, y in blocks)
+
+    prev_end = 0.0
+    out: list[dict] = []
+    for sv in services:
+        old = next((q for q in prev or [] if q["id"] == sv["id"]), None)
+        if old and old["start_s"] is not None and old["start_s"] <= now:
+            prev_end = old["end_s"]
+            out.append(old)
+            continue
+        if (old and old["start_s"] is not None and old["start_s"] >= prev_end + 1200 and old["end_s"] <= latest
+                and free(old["start_s"], old["end_s"])):
+            prev_end = old["end_s"]
+            out.append(old)
+            continue
+
+        def try_mode(dur: float):
+            for k in range(37):
+                for sg in ((1, -1) if k else (1,)):
+                    st = sv["pref_s"] + sg * k * 300
+                    if st < now or st < prev_end + 1200 or st + dur > latest:
+                        continue
+                    if free(st, st + dur):
+                        return st, sg * k * 300
+            return None
+
+        r, mode, dur = try_mode(sv["dur_s"]), "normal", sv["dur_s"]
+        if sv.get("simplified_s") and (r is None or abs(r[1]) > 3600):
+            r2 = try_mode(sv["simplified_s"])
+            if r2 and (r is None or abs(r2[1]) < abs(r[1])):
+                r, mode, dur = r2, "simplified", sv["simplified_s"]
+        base = {"id": sv["id"], "name": sv["name"]}
+        if r is None:
+            out.append({**base, "start_s": None, "end_s": None, "mode": "skipped" if sv.get("optional") else "purser", "shift_s": 0})
+            continue
+        prev_end = r[0] + dur
+        out.append({**base, "start_s": r[0], "end_s": r[0] + dur, "mode": mode, "shift_s": r[1]})
+    return out
 
 
-def _stop_service(g: _Greedy, cabin: CabinState):
-    if cabin.service_active:
-        carts = _aisle_carts(cabin)
-        zone = carts[0].zone if carts else cabin.crew[0].zone
-        g.assign("STOP_SERVICE", zone)
+def match_history(e: Exposure, hist: list[dict]) -> dict | None:
+    """Past report segment overlapping the exposure the most (by distance along the route)."""
+    best, best_ov = None, 0.0
+    for h in hist:
+        ov = min(e.d1, h["d1_nm"]) - max(e.d0, h["d0_nm"])
+        if ov > best_ov:
+            best, best_ov = h, ov
+    return best
 
 
-def full_plan(cabin: CabinState) -> Plan:
-    g = _Greedy(cabin)
-    _stop_service(g, cabin)
-    returned_to: set[Zone] = set()
-    for c in _aisle_carts(cabin):
-        cid = g.assign("STOW_HOT_LIQUID", c.zone, c.id) if c.hot_liquid else None
-        gz = nearest_galley(c.zone)
-        extra = CART_TRAVEL_PER_ZONE_S * abs(ZONE_INDEX[gz] - ZONE_INDEX[c.zone])
-        g.assign("RETURN_CART_TO_GALLEY", c.zone, c.id, crew_id=cid, end_zone=gz, extra=extra)
-        returned_to.add(gz)
-    for l in cabin.lavatories:
-        if l.occupied:
-            g.assign("LAV_PAX_GUIDANCE", l.zone, l.id)
-    for gl in cabin.galleys:
-        if not gl.secured:
-            g.assign("SECURE_GALLEY", gl.zone, gl.zone.value)
-    return Plan(plan_id="RULE-FULL", source="RULE", label="완전 정리 후 착석",
-                steps=g.finish(),
-                rationale="카트를 갤리로 복귀·잠금하고 갤리까지 정리. 잔여위험 최소, 소요시간 최대.")
-
-
-def minimal_plan(cabin: CabinState) -> Plan:
-    g = _Greedy(cabin)
-    _stop_service(g, cabin)
-    for c in _aisle_carts(cabin):
-        cid = g.assign("STOW_HOT_LIQUID", c.zone, c.id) if c.hot_liquid else None
-        if c.status == CartStatus.AISLE_UNSECURED:
-            g.assign("SECURE_CART_IN_PLACE", c.zone, c.id, crew_id=cid)
-    for l in cabin.lavatories:
-        if l.occupied:
-            g.assign("LAV_PAX_GUIDANCE", l.zone, l.id)
-    return Plan(plan_id="RULE-MINIMAL", source="RULE", label="핵심 위험만 정리 후 착석",
-                steps=g.finish(),
-                rationale="뜨거운 음료 수납 + 카트 현장 고정 + 화장실 안내만 수행. 갤리 정리는 포기.")
-
-
-def immediate_plan(cabin: CabinState) -> Plan:
-    g = _Greedy(cabin)
-    return Plan(plan_id="RULE-IMMEDIATE", source="RULE", label="즉시 자기보호",
-                steps=g.finish(),
-                rationale="정리 없이 전원 즉시 착석. 잔여위험은 남지만 승무원 부상 위험 최소화.")
-
-
-class RuleBasedPlanner:
-    name = "rule"
-
-    async def propose(self, cabin: CabinState, tta_low_s: float | None = None) -> list[Plan]:
-        # 즉시 자기보호 후보는 Safety Kernel이 항상 직접 추가한다(KERNEL-IMMEDIATE).
-        return [full_plan(cabin), minimal_plan(cabin)]
+def rule_insights(ex: list[Exposure], hist: list[dict], strength: list[dict]) -> list[dict]:
+    out = []
+    for e in ex:
+        h = match_history(e, hist)
+        s = strength[e.max]
+        if h:
+            text = {
+                "ko": f"오늘 예보 구간({s['ko']})이 과거 보고가 {h['cases']}건 있었던 '{h['name']['ko']}' 구간과 겹칩니다. "
+                      f"주요 원인은 {h['pattern']['ko']}이며 {h['severity']['ko']}였습니다({h['season']['ko']}). "
+                      "예보보다 일찍 흔들릴 수 있으니 1포인트 준비를 서두르는 것이 좋아요.",
+                "en": f"Today's forecast segment ({s['en']}) overlaps '{h['name']['en']}', where {h['cases']} reports were filed. "
+                      f"Main cause: {h['pattern']['en']}; {h['severity']['en']} ({h['season']['en']}). "
+                      "It may start earlier than forecast, so get Point 1 preparation going early.",
+            }
+        else:
+            text = {
+                "ko": f"오늘 예보 구간({s['ko']})과 겹치는 과거 보고는 없습니다. 예보 기준으로 포인트를 진행하세요.",
+                "en": f"No past reports overlap today's forecast segment ({s['en']}). Follow the points as forecast.",
+            }
+        out.append({"hazard_id": e.hazard.id, "t0_s": e.t0, "history_id": h["id"] if h else None, "source": "rule", "text": text})
+    return out

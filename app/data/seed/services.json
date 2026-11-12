@@ -1,0 +1,35 @@
+[
+  {
+    "id": "m1",
+    "name": {
+      "ko": "1차 식사",
+      "en": "First meal"
+    },
+    "pref_s": 1500,
+    "dur_s": 5700,
+    "simplified_s": 4200,
+    "optional": false
+  },
+  {
+    "id": "sn",
+    "name": {
+      "ko": "중간 스낵",
+      "en": "Mid-flight snack"
+    },
+    "pref_s": 17700,
+    "dur_s": 1800,
+    "simplified_s": null,
+    "optional": true
+  },
+  {
+    "id": "m2",
+    "name": {
+      "ko": "2차 식사",
+      "en": "Second meal"
+    },
+    "pref_s": 26160,
+    "dur_s": 4500,
+    "simplified_s": 3000,
+    "optional": false
+  }
+]

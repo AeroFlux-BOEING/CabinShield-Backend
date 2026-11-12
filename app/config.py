@@ -1,7 +1,7 @@
-"""런타임 설정. 모든 값은 환경변수(CS_ 접두사)로 덮어쓸 수 있다.
+"""Runtime settings. Every value can be overridden with a CS_* environment variable.
 
-주의: 아래 임계값·분위수·버퍼는 PoC 시연용 기본값이며 항공업계 표준값이 아니다.
-실제 값은 항공사 SOP와 검증데이터로 정해야 한다.
+Thresholds, buffers and timings are demo defaults for the PoC, not aviation standards.
+Real values must come from the airline's SOPs and validation data.
 """
 from functools import lru_cache
 
@@ -11,33 +11,40 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="CS_", env_file=".env", extra="ignore")
 
-    # --- 서버 ---
+    # --- server ---
     env: str = "dev"
-    api_key: str = ""                      # 비어 있으면 인증 비활성(로컬 개발용)
-    cors_origins: str = "*"                # 콤마 구분
-    data_dir: str = "./data"               # SQLite 감사로그 위치
+    api_key: str = ""                  # empty = auth disabled (local dev). Tablet / ops send X-API-Key
+    ops_api_key: str = ""              # optional separate key for forecast ingest & ops endpoints
+    cors_origins: str = "*"            # comma separated
+    data_dir: str = "./data"           # SQLite location
 
-    # --- Safety Kernel / CSM ---
-    safety_buffer_s: float = 10.0          # B
-    tta_quantile_low: float = 0.10         # Q_low(TTA)
-    cst_quantile_high: float = 0.90        # Q_high(CST)
-    mc_samples: int = 2000                 # 몬테카를로 샘플 수
-    csm_green_s: float = 15.0              # CSM >= 이 값이면 GREEN (설명용 임계값)
-    csm_preferred_min_s: float = 5.0       # 이보다 여유가 얇은 PASS 후보는 후순위
-    ack_delay_median_s: float = 3.0        # 승무원 인지·확인 지연
-    advisory_stale_s: float = 10.0         # TTA 정보가 이보다 오래되면 Fail-safe
-    cabin_state_stale_s: float = 600.0     # 객실상태가 이보다 오래되면 Fail-safe
-    stale_extra_buffer_s: float = 15.0     # Fail-safe 시 추가 버퍼
+    # --- safety kernel (mirrors the tablet) ---
+    safety_buffer_s: float = 10.0      # B in CSM = Q_low − (CST + margin) − B
+    uplink_interval_s: float = 900.0   # forecast uplink cadence while the satellite link is up (sim s)
 
-    # --- 시뮬레이터 ---
-    sim_tick_s: float = 1.0                # 실시간 tick 간격
-    sim_speed: float = 1.0                 # 배속 (발표 리허설용, 1.0=실시간)
-    sim_lookahead_s: float = 120.0         # 이 시간 안에 위험구간이 들어오면 Advisory 발행
+    # --- flight simulator (demo "aircraft feed") ---
+    sim_tick_s: float = 1.0            # real seconds between ticks
+    sim_speed: float = 60.0            # sim seconds per real second (10 / 60 / 300 in the app)
+    sim_slow_near_s: float = 1560.0    # within this of a segment, cap speed at sim_slow_speed
+    sim_slow_speed: float = 10.0
+    state_push_s: float = 1.0          # WS state push throttle (real s)
 
-    # --- 생성형 AI Planner ---
-    planner: str = "rule"                  # rule | llm
+    # --- live aviation weather (NWS Aviation Weather Center, aviationweather.gov) ---
+    wx_mode: str = "live"              # live | fixture | off
+    wx_routes: str = "ICN-SFO"         # comma separated routes to keep updated
+    wx_interval_s: float = 600.0       # refresh cadence (real s); AWC allows ≤ 100 req/min, we use 3 per refresh
+    wx_pirep_age_h: float = 6.0        # PIREP/AIREP look-back
+    wx_corridor_nm: float = 120.0      # keep reports/areas within this distance of the route
+    wx_pirep_hazards: bool = True      # turn clusters of MOD+ reports into short-lived hazards
+    wx_keep_seed: bool = True          # keep the demo forecast areas next to live ones
+    wx_time_mode: str = "replay"       # replay: live areas appear 'now' in sim time · real: true UTC validity
+    wx_contact: str = ""               # appended to the User-Agent (AWC asks for a custom UA)
+    wx_fixture_dir: str = ""           # saved API responses for wx_mode=fixture
+
+    # --- insight text ---
+    planner: str = "rule"              # rule | llm
     anthropic_api_key: str = ""
-    anthropic_model: str = ""              # 예: claude-sonnet-4-5 (콘솔에서 사용 가능한 모델 ID)
+    anthropic_model: str = ""          # model ID available in your Anthropic console
     llm_timeout_s: float = 8.0
 
     @property

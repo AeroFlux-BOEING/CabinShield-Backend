@@ -1,0 +1,240 @@
+{
+  "places": [
+    {
+      "name": {
+        "ko": "인천",
+        "en": "Incheon"
+      },
+      "lat": 37.46,
+      "lon": 126.44,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "도쿄",
+        "en": "Tokyo"
+      },
+      "lat": 35.68,
+      "lon": 139.69,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "삿포로",
+        "en": "Sapporo"
+      },
+      "lat": 43.06,
+      "lon": 141.35,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "앵커리지",
+        "en": "Anchorage"
+      },
+      "lat": 61.22,
+      "lon": 210.1,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "밴쿠버",
+        "en": "Vancouver"
+      },
+      "lat": 49.28,
+      "lon": 236.88,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "샌프란시스코",
+        "en": "San Francisco"
+      },
+      "lat": 37.62,
+      "lon": 237.62,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "호놀룰루",
+        "en": "Honolulu"
+      },
+      "lat": 21.3,
+      "lon": 202.14,
+      "city": true
+    },
+    {
+      "name": {
+        "ko": "북태평양",
+        "en": "North Pacific"
+      },
+      "lat": 36,
+      "lon": 178,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "베링해",
+        "en": "Bering Sea"
+      },
+      "lat": 58.5,
+      "lon": 180,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "알류샨 열도",
+        "en": "Aleutians"
+      },
+      "lat": 50.6,
+      "lon": 184,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "캄차카",
+        "en": "Kamchatka"
+      },
+      "lat": 56.5,
+      "lon": 159.5,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "알래스카",
+        "en": "Alaska"
+      },
+      "lat": 64,
+      "lon": 208,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "오호츠크해",
+        "en": "Sea of Okhotsk"
+      },
+      "lat": 54,
+      "lon": 147,
+      "city": false
+    },
+    {
+      "name": {
+        "ko": "동해",
+        "en": "East Sea"
+      },
+      "lat": 40,
+      "lon": 134,
+      "city": false
+    }
+  ],
+  "airports": [
+    {
+      "code": "ICN",
+      "name": {
+        "ko": "인천",
+        "en": "Incheon"
+      },
+      "lat": 37.46,
+      "lon": 126.44
+    },
+    {
+      "code": "NRT",
+      "name": {
+        "ko": "도쿄 나리타",
+        "en": "Tokyo Narita"
+      },
+      "lat": 35.77,
+      "lon": 140.39
+    },
+    {
+      "code": "CTS",
+      "name": {
+        "ko": "삿포로 신치토세",
+        "en": "Sapporo New Chitose"
+      },
+      "lat": 42.78,
+      "lon": 141.69
+    },
+    {
+      "code": "PKC",
+      "name": {
+        "ko": "페트로파블롭스크",
+        "en": "Petropavlovsk"
+      },
+      "lat": 53.17,
+      "lon": 158.45
+    },
+    {
+      "code": "SYA",
+      "name": {
+        "ko": "셰미야",
+        "en": "Shemya"
+      },
+      "lat": 52.71,
+      "lon": 174.11
+    },
+    {
+      "code": "ADK",
+      "name": {
+        "ko": "에이닥",
+        "en": "Adak"
+      },
+      "lat": 51.88,
+      "lon": 183.36
+    },
+    {
+      "code": "CDB",
+      "name": {
+        "ko": "콜드베이",
+        "en": "Cold Bay"
+      },
+      "lat": 55.21,
+      "lon": 197.29
+    },
+    {
+      "code": "ANC",
+      "name": {
+        "ko": "앵커리지",
+        "en": "Anchorage"
+      },
+      "lat": 61.17,
+      "lon": 210
+    },
+    {
+      "code": "SEA",
+      "name": {
+        "ko": "시애틀",
+        "en": "Seattle"
+      },
+      "lat": 47.45,
+      "lon": 237.69
+    },
+    {
+      "code": "YVR",
+      "name": {
+        "ko": "밴쿠버",
+        "en": "Vancouver"
+      },
+      "lat": 49.19,
+      "lon": 236.82
+    },
+    {
+      "code": "SFO",
+      "name": {
+        "ko": "샌프란시스코",
+        "en": "San Francisco"
+      },
+      "lat": 37.62,
+      "lon": 237.62
+    },
+    {
+      "code": "HNL",
+      "name": {
+        "ko": "호놀룰루",
+        "en": "Honolulu"
+      },
+      "lat": 21.32,
+      "lon": 202.08
+    }
+  ]
+}

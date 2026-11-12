@@ -14,8 +14,14 @@ services:
         generateValue: true
       - key: CS_CORS_ORIGINS
         value: "*"
+      - key: CS_OPS_API_KEY
+        generateValue: true
       - key: CS_PLANNER
         value: rule
+      - key: CS_WX_MODE
+        value: live
+      - key: CS_WX_CONTACT
+        sync: false
       - key: CS_ANTHROPIC_API_KEY
         sync: false
       - key: CS_ANTHROPIC_MODEL

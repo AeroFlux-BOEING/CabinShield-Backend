@@ -1,135 +1,63 @@
-import asyncio
-
 import numpy as np
 import pytest
 
-from app.config import Settings
-from app.engine.cst import compute_cst
-from app.engine.tta import FlightSimulator, tta_estimate
-from app.kernel import SafetyKernel, immediate_self_protect_plan
-from app.models import Band, Plan, PlanStep, TtaSource, Verdict
-from app.planner.rule_based import full_plan, minimal_plan
-from app.scenarios import a320_hot_beverage
+from app.engine.csm import decide
+from app.engine.cst import cabin_state, features, get_model
+from app.kernel import evaluate, verify_client_decision
 
-S = Settings(mc_samples=2000)
-K = SafetyKernel(S)
+CREW = ["L1", "R1", "L2", "R2", "G2", "L3", "R3", "L4", "R4", "G4"]
 
 
-def tta(mean, sigma=6.5):
-    return tta_estimate(mean, sigma, S.tta_quantile_low, source=TtaSource.SIMULATOR, advisory_id="T")
+def test_model_matches_app_reference():
+    m = get_model()
+    assert m.params == 1827
+    assert m.self_check() < 0.01
 
 
-def decide(mean):
-    cab = a320_hot_beverage()
-    plans = [full_plan(cab), minimal_plan(cab), immediate_self_protect_plan(cab)]
-    t = tta(mean)
-    evs = [K.evaluate_plan(cab, p, t, S.safety_buffer_s, np.random.default_rng(0)) for p in plans]
-    return K.decide("T", cab, t, evs, [], S.safety_buffer_s)
+def test_features_are_38_and_reflect_actions():
+    busy = cabin_state(1000, "m1", False, {}, CREW, [])
+    done = cabin_state(1000, "m1", False, {k: True for k in ("serviceStopped", "cartsSecured", "hotStowed", "galleySecured", "lavsCleared")}, CREW, [])
+    fb, fd = features(busy), features(done)
+    assert len(fb) == len(fd) == 38
+    cb, cd = get_model().predict(fb), get_model().predict(fd)
+    assert cd[0] < cb[0]  # securing the cabin shortens the FULL plan
 
 
-# ---------------------------------------------------------------- 엔진
-def test_cst_is_not_simple_sum():
-    cab = a320_hot_beverage()
-    p = full_plan(cab)
-    cst = compute_cst(cab, p, S, np.random.default_rng(0))
-    serial = sum(__import__("app.library", fromlist=["ACTIONS"]).ACTIONS[s.action_id].median_s for s in p.steps)
-    assert cst.cst_median_s < serial  # 병렬 수행 반영
-    assert cst.cst_high_s >= cst.cst_median_s
+def test_decide_prefers_thorough_plan_with_margin():
+    assert decide([100, 60, 10], 400, 10)["pick_id"] == "FULL"
+    assert decide([100, 60, 10], 75, 10)["pick_id"] == "MINIMAL"
+    assert decide([100, 60, 10], 15, 10)["pick_id"] == "IMMEDIATE"
+    assert decide([100, 60, 10], 0, 10)["pick_id"] == "IMMEDIATE"   # nothing passes → sit down
+    assert decide([100, 60, 10], None, 10)["csm_s"] is None
 
 
-def test_cst_grows_with_congestion():
-    cab = a320_hot_beverage()
-    lo = compute_cst(cab, full_plan(cab), S, np.random.default_rng(0)).cst_high_s
-    cab.aisle_congestion = 1.0
-    hi = compute_cst(cab, full_plan(cab), S, np.random.default_rng(0)).cst_high_s
-    assert hi > lo
+def test_kernel_never_picks_negative_margin_when_a_plan_passes():
+    rng = np.random.default_rng(0)
+    for _ in range(300):
+        x = list(rng.random(38))
+        q = float(rng.uniform(0, 400))
+        r = evaluate(x, q, 10)
+        if any(v >= 0 for v in r["csm_s"]):
+            assert r["csm_s"][r["pick"]] >= 0
 
 
-def test_tta_low_is_conservative():
-    t = tta(60, 6.5)
-    assert t.tta_low_s < t.tta_mean_s < t.tta_high_s
+def test_verify_flags_unsafe_and_drift():
+    x = features(cabin_state(1000, "m1", False, {}, CREW, []))
+    srv = evaluate(x, 80, 10)
+    ok = verify_client_decision({"features": x, "q_low_s": 80, "pick": srv["pick"], "cst_s": srv["cst_s"], "model_version": "cst-mlp-v1"}, 10)
+    assert ok["agree"] and not ok["flags"]
+    bad = verify_client_decision({"features": x, "q_low_s": 80, "pick": "FULL", "cst_s": [c + 5 for c in srv["cst_s"]]}, 10)
+    if srv["csm_s"][0] < 0:
+        assert "UNSAFE_PICK" in bad["flags"]
+    assert "CST_DRIFT" in bad["flags"]
+    assert verify_client_decision({"features": x, "q_low_s": None, "pick": 0, "model_version": "nope"}, 10)["flags"] == ["UNKNOWN_MODEL"]
 
 
-def test_simulator_tta_decreases():
-    sim = FlightSimulator.from_initial_tta(100)
-    a, _ = sim.raw_tta()
-    sim.step(10)
-    b, _ = sim.raw_tta()
-    assert pytest.approx(a - b, abs=0.01) == 10
-
-
-# ---------------------------------------------------------------- 판정 흐름
-def test_ample_time_recommends_full():
-    d = decide(120)
-    assert d.recommended.plan.plan_id == "RULE-FULL"
-    assert d.band == Band.GREEN and not d.fail_safe
-
-
-def test_medium_time_drops_nonessential():
-    d = decide(60)
-    full = next(e for e in d.candidates if e.plan.plan_id == "RULE-FULL")
-    assert full.verdict == Verdict.REJECT
-    assert d.recommended.plan.plan_id == "RULE-MINIMAL"
-
-
-def test_short_time_self_protect():
-    d = decide(35)
-    assert d.recommended.plan.plan_id == "KERNEL-IMMEDIATE"
-    assert d.band == Band.RED
-
-
-def test_no_time_fail_safe():
-    d = decide(8)
-    assert d.recommended.plan.plan_id == "KERNEL-IMMEDIATE"
-    assert d.fail_safe and "NO_FEASIBLE_PLAN" in d.fail_safe_reasons
-
-
-# ---------------------------------------------------------------- 규칙 검증 (AI 출력 불신)
-def _plan(steps):
-    return Plan(plan_id="X", source="LLM", label="x", steps=[PlanStep(**s) for s in steps])
-
-
-def _seat_all(extra=()):
-    return list(extra) + [{"action_id": "CREW_SELF_PROTECT", "crew_id": f"FA{i}"} for i in range(1, 5)]
-
-
-def test_reject_unknown_action():
-    p = _plan(_seat_all([{"action_id": "OPEN_DOOR", "crew_id": "FA1"}]))
-    ev = K.evaluate_plan(a320_hot_beverage(), p, tta(120), 10)
-    assert ev.verdict == Verdict.REJECT and "NOT_IN_LIBRARY" in ev.reasons[0]
-
-
-def test_reject_missing_self_protect():
-    p = _plan([{"action_id": "CREW_SELF_PROTECT", "crew_id": "FA1"}])
-    ev = K.evaluate_plan(a320_hot_beverage(), p, tta(120), 10)
-    assert ev.verdict == Verdict.REJECT and any("MISSING_SELF_PROTECT" in r for r in ev.reasons)
-
-
-def test_reject_moving_cart_with_hot_liquid():
-    p = _plan(_seat_all([
-        {"action_id": "STOP_SERVICE", "crew_id": "FA1"},
-        {"action_id": "RETURN_CART_TO_GALLEY", "crew_id": "FA2", "target_id": "CART1"},
-    ]))
-    ev = K.evaluate_plan(a320_hot_beverage(), p, tta(120), 10)
-    assert ev.verdict == Verdict.REJECT and any("FORBIDDEN" in r for r in ev.reasons)
-
-
-def test_reject_action_after_self_protect():
-    steps = _seat_all() + [{"action_id": "LAV_PAX_GUIDANCE", "crew_id": "FA3", "target_id": "LAV-AFT"}]
-    ev = K.evaluate_plan(a320_hot_beverage(), _plan(steps), tta(120), 10)
-    assert ev.verdict == Verdict.REJECT and any("AFTER_SELF_PROTECT" in r for r in ev.reasons)
-
-
-def test_rule_violation_stays_rejected_on_time_recheck():
-    p = _plan([{"action_id": "CREW_SELF_PROTECT", "crew_id": "FA1"}])
-    ev = K.evaluate_plan(a320_hot_beverage(), p, tta(120), 10)
-    assert K.recheck_time(ev, tta(300), 10).verdict == Verdict.REJECT
-
-
-def test_stale_inputs_add_buffer():
-    from datetime import timedelta
-    cab = a320_hot_beverage()
-    t = tta(60)
-    t.issued_at = t.issued_at - timedelta(seconds=60)
-    r = K.fail_safe_reasons(cab, t)
-    assert r and K.buffer_for(r) > S.safety_buffer_s
+@pytest.mark.parametrize("q", [30, 120, 300])
+def test_ground_and_tablet_formula(q):
+    m = get_model()
+    x = features(cabin_state(1000, "sn", False, {}, CREW, []))
+    r = evaluate(x, q, 10)
+    raw = m.predict(x)
+    assert r["cst_s"][1] == pytest.approx(max(0, raw[1]) + m.margin[1])
+    assert r["csm_s"][1] == pytest.approx(q - r["cst_s"][1] - 10)
