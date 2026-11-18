@@ -4,6 +4,8 @@
 * SIGMET polygons → kept when the route corridor crosses them at cruise levels → exact-outline hazard
   with `floor` = SIGMET intensity (SEV → 3) and its validity window and motion.
 * Clusters of recent MOD+ reports along the route → short-lived hazard (source PIREP).
+* WAFS SIGWX turbulence areas → same crossing test as SIGMETs → forecast hazard (source SIGWX),
+  validity = its time step, no motion.
 """
 from __future__ import annotations
 
@@ -102,6 +104,24 @@ def sigmet_to_hazard(area: dict, d_nm: float) -> dict:
         "valid_from_utc": area["valid_from_utc"], "valid_to_utc": area["valid_to_utc"],
         "meta": {"obs_id": area["id"], "d_nm": round(d_nm, 1), "raw": area["raw"]},
     }
+
+
+def sigwx_to_hazard(area: dict, d_nm: float) -> dict:
+    """WAFS SIGWX area (app.wx.sigwx.parse) → hazard with the exact outline, floor = MOD 2 / SEV 3."""
+    h = sigmet_to_hazard(area, d_nm)
+    q = RING_LABEL[area["ring"]]
+    ko_ctx, en_ctx = {"CAT": ("청천난류", "clear-air"), "CLOUD": ("구름 속", "in-cloud")}.get(area.get("context") or "", ("", ""))
+    lead = f" T+{area['lead_h']:g}h" if area.get("lead_h") is not None else ""
+    vt = dt.datetime.fromisoformat(area["valid_utc"]).strftime("%d %H%MZ")
+    h.update({
+        "id": f"SWX-{area['fir']}-{area['id'][:8]}", "source": "SIGWX", "t_obs_utc": area["valid_utc"],
+        "drift_kt": 0.0, "drift_dir_deg": 90.0,
+        "name": {"ko": f"WAFS SIGWX {vt}{lead} · {q['ko']} 난기류" + (f" ({ko_ctx})" if ko_ctx else ""),
+                 "en": f"WAFS SIGWX {vt}{lead} · {q['en']}" + (f" {en_ctx}" if en_ctx else "") + " turbulence"},
+        "meta": {"obs_id": area["id"], "d_nm": round(d_nm, 1), "raw": area["raw"], "valid_utc": area["valid_utc"],
+                 "lead_h": area.get("lead_h")},
+    })
+    return h
 
 
 def cluster_reports(obs: list[dict], gap_nm: float = 80, min_ring: int = 2) -> list[list[dict]]:

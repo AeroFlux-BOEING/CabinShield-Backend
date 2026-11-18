@@ -143,6 +143,25 @@ flowchart LR
 
 위험구역 확장 필드 (앱과의 차이): `centre_ll`, `t_obs_utc`, `vertices_nm`(실제 윤곽), `floor`(구역 안 최소 강도), `drift_dir_deg`, `valid_from_utc`/`valid_to_utc`. 없으면 기존과 똑같이 동작하므로 데모 예보 결과는 바뀌지 않는다. **앱이 실시간 구역을 그대로 계산하려면 `src/domain/flight.ts`의 Hazard에도 같은 필드를 추가해야 한다.**
 
+### 7.1 WAFS 고고도 SIGWX (WIFS API, 선택)
+
+```mermaid
+flowchart LR
+  W["aviationweather.gov/wifs/api<br/>kkci_iwxxm_forecasts · X-API-Key"] --> X["wx/sigwx.py<br/>IWXXM → TURBULENCE 구역<br/>BUFR 0 11 030 → 링 2/3"]
+  X --> F2["route_filter.sigmet_crosses_route<br/>회랑 120nm · 순항 FL"]
+  F2 --> H3["sigwx_to_hazard<br/>source=SIGWX · 타임스텝 ±1.5h · 이동 없음"]
+  H3 --> P
+```
+
+| 항목 | 값 |
+|---|---|
+| 인증 | WIFS 승인 계정 + `X-API-Key` (`CS_WIFS_API_KEY`), 키 유효 1년 |
+| 제한 | API 엔드포인트 스레드당 분당 1회, 하루 5,000회 → 서버는 60초 간격, 30분 캐시 |
+| 갱신 | 하루 4회 (≈05:50/11:50/17:50/23:50 UTC), 앞으로 12시간 타임스텝 수집 |
+| 실패 | 마지막 SIGWX 구역 유지, `sigwx_error` 기록. SIGMET/PIREP은 계속 갱신 |
+
+`LIVE_SOURCES = ("SIGMET", "PIREP", "SIGWX")` — replay 모드 시간 이동과 `/wx/{route}/areas`에 같이 적용된다.
+
 ## 8. 앱 연동 순서 (제안)
 
 1. 비행편 시작 화면: `GET /schedule/{no}?date=` 로 노선 카드 채우기 → `POST /flights`

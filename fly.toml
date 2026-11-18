@@ -1,4 +1,5 @@
 # fly launch --no-deploy 후 app 이름 수정 → fly secrets set CS_API_KEY=... → fly deploy
+# SIGWX(WIFS 승인 후): fly secrets set CS_WIFS_API_KEY=...   (CS_WX_SIGWX=auto가 기본)
 app = "cabinshield-api"
 primary_region = "nrt"
 

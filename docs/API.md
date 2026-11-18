@@ -74,14 +74,14 @@
 |---|---|---|
 | GET | `/healthz` | Healthz |
 
-## weather (NWS Aviation Weather Center)
+## weather (NWS Aviation Weather Center + WAFS SIGWX)
 
 | Method | Path | 설명 |
 |---|---|---|
-| GET | `/api/v1/wx/status` | 수집 모드, 노선별 마지막 수집 결과, 마지막 오류 |
-| POST | `/api/v1/wx/refresh?route_id=` 🛠 | 지금 PIREP/AIREP + SIGMET 수집, 바뀌었으면 예보 발행 |
+| GET | `/api/v1/wx/status` | 수집 모드, 노선별 마지막 수집 결과(`sigwx_total`, `sigwx_on_route` 포함), 마지막 오류, `sigwx_mode`·`sigwx_error` |
+| POST | `/api/v1/wx/refresh?route_id=` 🛠 | 지금 PIREP/AIREP + SIGMET (+ SIGWX 켜져 있으면) 수집, 바뀌었으면 예보 발행 |
 | GET | `/api/v1/wx/{route_id}/reports?hours=&min_ring=&kind=` | 노선 회랑 안 PIREP·AIREP (d_nm, xtk_nm, 강도) |
-| GET | `/api/v1/wx/{route_id}/areas` | 현재 예보 안의 실시간 위험구역 (SIGMET, 보고 묶음) |
+| GET | `/api/v1/wx/{route_id}/areas` | 현재 예보 안의 실시간 위험구역 (SIGMET, WAFS SIGWX, 보고 묶음) |
 
 ## WebSocket
 

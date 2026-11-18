@@ -152,7 +152,7 @@ HAZARD_FIELDS = ("f", "off_nm", "r_nm", "drift_kt", "shape", "source", "centre_l
                  "drift_dir_deg", "valid_from_utc", "valid_to_utc", "meta")
 
 
-LIVE_SOURCES = ("SIGMET", "PIREP")
+LIVE_SOURCES = ("SIGMET", "PIREP", "SIGWX")
 
 
 def make_hazards(route: GreatCircleRoute, specs: list[dict], dep_utc: dt.datetime | None = None,

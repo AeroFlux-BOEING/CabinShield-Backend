@@ -1,4 +1,4 @@
-"""Live aviation weather (NWS Aviation Weather Center): status, manual refresh, route-filtered data."""
+"""Live aviation weather (NWS Aviation Weather Center + WAFS SIGWX): status, manual refresh, route-filtered data."""
 from __future__ import annotations
 
 import datetime as dt
@@ -21,7 +21,7 @@ def status(svc=Depends(wx)):
     return svc.status
 
 
-@router.post("/refresh", dependencies=[Depends(require_ops)], summary="Fetch PIREP/AIREP + SIGMETs now and publish if changed")
+@router.post("/refresh", dependencies=[Depends(require_ops)], summary="Fetch PIREP/AIREP + SIGMETs (+ WAFS SIGWX if enabled) now and publish if changed")
 async def refresh(route_id: str = "ICN-SFO", svc=Depends(wx)):
     try:
         return await svc.refresh(route_id)
@@ -33,11 +33,11 @@ async def refresh(route_id: str = "ICN-SFO", svc=Depends(wx)):
 def reports(route_id: str, m: SessionManager = Depends(manager), hours: float = Query(24, gt=0, le=720),
             min_ring: int = Query(0, ge=0, le=3), kind: str | None = Query(None, pattern="^(PIREP|AIREP|UUA)$")):
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=hours)).isoformat()
-    obs = [o for o in m.store.wx_observations(route_id, since, kind, min_ring) if o["kind"] != "SIGMET"]
+    obs = [o for o in m.store.wx_observations(route_id, since, kind, min_ring) if o["kind"] not in ("SIGMET", "SIGWX")]
     return {"route_id": route_id, "count": len(obs), "reports": obs}
 
 
-@router.get("/{route_id}/areas", summary="Live hazards (SIGMET / PIREP clusters) in the current forecast")
+@router.get("/{route_id}/areas", summary="Live hazards (SIGMET / WAFS SIGWX / PIREP clusters) in the current forecast")
 def areas(route_id: str, m: SessionManager = Depends(manager)):
     fc = m.forecast(route_id)
     return {"route_id": route_id, "version": fc["version"],

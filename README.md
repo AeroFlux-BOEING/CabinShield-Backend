@@ -67,6 +67,8 @@ app/
 │  ├─ awc.py            API 클라이언트 (User-Agent, 분당 30회 제한, 캐시, 204 처리)
 │  ├─ normalize.py      PIREP/AIREP·SIGMET → 공통 형식, 강도 → 링(약함/보통/심함)
 │  ├─ route_filter.py   노선 회랑 필터, SIGMET → 위험구역, MOD+ 보고 묶음 → 단기 위험구역
+│  ├─ sigwx.py          WAFS SIGWX(IWXXM) → 난기류 구역 (MOD/SEV, 타임스텝 유효시간)
+│  ├─ wifs.py           WIFS API 클라이언트 (X-API-Key, 60초 간격, 30분 캐시, zip 응답)
 │  ├─ service.py        10분마다 수집 → 바뀌면 새 예보 버전 발행 → 비행 중인 편에 uplink
 │  └─ capture.py        실제 응답을 테스트용 파일로 저장
 ├─ planner/
@@ -96,6 +98,18 @@ tools/                  export_from_app.ts · export_golden.ts (앱에서 데이
 - `CS_WX_TIME_MODE=replay`(기본): 시뮬레이터 비행에서는 지금 관측된 SIGMET·보고를 시뮬레이션 현재 시각 기준으로 옮겨 보여줍니다. 실제 항공기 피드(`AIRCRAFT_FEED`)는 항상 실제 UTC 유효시간을 씁니다.
 - 실패해도 마지막 예보가 유지되고 `/api/v1/wx/status`에 오류가 남습니다. 인터넷이 없을 땐 `CS_WX_MODE=fixture`로 저장된 실제 응답(2026-11-12)을 씁니다.
 
+### WAFS 고고도 SIGWX (선택)
+
+SIGMET이 없는 청천난류(CAT)·산악파 난기류를 예보 구역으로 채웁니다. 데이터는 NOAA WIFS API에서 IWXXM 형식으로 받아요. 범위는 FL100~FL600, T+6~T+48, 3시간 간격이에요.
+
+| 항목 | 내용 |
+|---|---|
+| 접근 | WIFS 승인 계정이 필요해요. 기상청(국가 기상당국)과 FAA 승인을 거쳐서 `CS_WIFS_API_KEY`에 키를 넣어요 |
+| 켜기 | `CS_WX_SIGWX=auto`(기본)면 키가 있을 때만 켜져요. 키가 없으면 꺼지고, 다른 수집은 그대로 돌아가요 |
+| 처리 | MOD 이상 난기류 구역을 SIGMET과 같은 회랑 판정으로 걸러요. 걸린 구역은 `source: "SIGWX"` 위험구역이 돼요(MOD = 2단계, SEV = 3단계). 유효시간은 해당 타임스텝 ±1.5h, 이동은 없어요 |
+| 실패 시 | 마지막 SIGWX 구역을 유지하고 `sigwx_error`에 기록해요. SIGMET·PIREP 갱신은 막지 않아요 |
+| 오프라인 | `CS_WX_MODE=fixture`면 `tests/fixtures/wifs/`를 써요. WMO 예제 1개와 **합성** 테스트 파일 1개예요 |
+
 앱 쪽 데이터(스케줄·문구·예보·모델)가 바뀌면 프론트 폴더를 옆에 두고 다시 뽑으세요.
 
 ```bash
@@ -108,5 +122,7 @@ npx tsx tools/export_from_app.ts && npx tsx tools/export_golden.ts && pytest -q
 **Fly.io**: `fly launch --no-deploy --copy-config` → `fly volumes create cabinshield_data -r nrt -s 1` → `fly secrets set CS_API_KEY=... CS_OPS_API_KEY=...` → `fly deploy`
 
 세션과 WS 구독자가 메모리에 있으므로 워커 1개로 운용합니다(Dockerfile 설정됨).
+
+자세한 절차(환경변수, 생성형 AI 켜기, 온디바이스 모델 배포, 무료 플랜 제약)는 [docs/DEPLOY.md](docs/DEPLOY.md)를 보세요.
 
 > ⚠️ 스케줄·예보·과거 보고·소요시간·버퍼는 모두 데모용 가상 값이며, 항공업계 표준이나 실제 운항 데이터가 아닙니다.

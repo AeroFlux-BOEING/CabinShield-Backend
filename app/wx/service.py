@@ -1,7 +1,9 @@
 """Periodic live-weather ingest: fetch → normalise → keep the route corridor → publish a new forecast version.
 
+Sources: AWC Data API (PIREP/AIREP, international SIGMET) and, when enabled, WAFS SIGWX from the WIFS API.
 Every observation is stored (wx_observations) so the 'past similar reports' layer grows over time.
 Failures never break the app: the last good forecast stays, and /api/v1/wx/status shows the error.
+A SIGWX failure keeps the last SIGWX areas and does not block the SIGMET / PIREP update.
 """
 from __future__ import annotations
 
@@ -16,13 +18,16 @@ from app.config import Settings
 from app.engine.flight import LIVE_SOURCES
 from app.engine.geo import get_route
 from app.store import now_utc
-from app.wx import normalize
+from app.wx import normalize, sigwx
 from app.wx.awc import AwcClient, fixture_transport
 from app.wx.route_filter import (cluster_reports, project_observations, report_cluster_to_hazard, route_bboxes,
-                                 sigmet_crosses_route, sigmet_to_hazard)
+                                 sigmet_crosses_route, sigmet_to_hazard, sigwx_to_hazard)
+from app.wx.wifs import WifsClient
+from app.wx.wifs import fixture_transport as wifs_fixture_transport
 
 log = logging.getLogger("cabinshield.wx")
 DEFAULT_FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "awc"
+DEFAULT_SIGWX_FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "wifs"
 
 
 class WxService:
@@ -34,8 +39,29 @@ class WxService:
             transport = fixture_transport(Path(settings.wx_fixture_dir) if settings.wx_fixture_dir else DEFAULT_FIXTURES)
         ua = f"CabinShield-PoC/{__version__} (AeroFlux BOEING DAY{'; ' + settings.wx_contact if settings.wx_contact else ''})"
         self.client = AwcClient(ua, transport=transport)
-        self.status: dict = {"mode": settings.wx_mode, "routes": {}, "last_error": None}
+        self.status: dict = {"mode": settings.wx_mode, "routes": {}, "last_error": None, "sigwx_mode": "off", "sigwx_error": None}
+        self.wifs: WifsClient | None = None
+        mode = self._sigwx_mode()
+        if mode == "fixture":
+            folder = Path(settings.wx_sigwx_fixture_dir) if settings.wx_sigwx_fixture_dir else DEFAULT_SIGWX_FIXTURES
+            self.wifs = WifsClient("", ua, settings.wifs_centre, transport=wifs_fixture_transport(folder))
+        elif mode == "live":
+            self.wifs = WifsClient(settings.wifs_api_key, ua, settings.wifs_centre)
+        self.status["sigwx_mode"] = mode if self.wifs else "off"
         self._task: asyncio.Task | None = None
+
+    def _sigwx_mode(self) -> str:
+        s = self.s
+        if s.wx_mode == "off" or s.wx_sigwx == "off":
+            return "off"
+        if s.wx_sigwx == "fixture" or (s.wx_sigwx == "auto" and s.wx_mode == "fixture"):
+            return "fixture"
+        if s.wifs_api_key:
+            return "live"
+        if s.wx_sigwx == "live":
+            self.status["sigwx_error"] = {"at": now_utc().isoformat(), "route": None,
+                                          "error": "CS_WX_SIGWX=live but CS_WIFS_API_KEY is empty (WIFS needs an approved account)"}
+        return "off"
 
     @property
     def routes(self) -> list[str]:
@@ -63,16 +89,40 @@ class WxService:
                 h = report_cluster_to_hazard(g, route)
                 if h:
                     live.append(h)
+        sw_total, sw_on = await self._sigwx(route_id, route, live, crossing)
 
         self.m.store.add_wx_observations(route_id, on_route + [{**a, "d_nm": None} for a in crossing])
         published = self._publish(route_id, live)
         st = {"fetched_at": now_utc().isoformat(), "pireps_total": len(raw_p), "turb_reports": len(obs),
               "reports_on_route": len(on_route), "sigmets_total": len(raw_s), "sigmets_on_route": len(crossing),
+              "sigwx_total": sw_total, "sigwx_on_route": sw_on,
               "live_hazards": len(live), "forecast_version": published["version"], "published": published["new"],
-              "requests": self.client.requests}
+              "requests": self.client.requests, "sigwx_requests": self.wifs.requests if self.wifs else 0}
         self.status["routes"][route_id] = st
         self.status["last_error"] = None
         return st
+
+    async def _sigwx(self, route_id: str, route, live: list[dict], crossing: list[dict]) -> tuple[int, int]:
+        """Add WAFS SIGWX areas crossing the route to `live`; on failure keep the last published SIGWX areas."""
+        if not self.wifs:
+            return 0, 0
+        try:
+            areas = sigwx.parse_many(await self.wifs.forecasts(now_utc(), self.s.wx_sigwx_hours))
+        except Exception as exc:  # noqa: BLE001 — SIGWX must never block SIGMET / PIREP
+            self.status["sigwx_error"] = {"at": now_utc().isoformat(), "route": route_id, "error": f"{type(exc).__name__}: {exc}"}
+            log.warning("SIGWX fetch failed for %s: %s", route_id, exc)
+            keep = [h for h in self.m.forecast(route_id)["hazards"] if h.get("source") == "SIGWX"]
+            live += keep
+            return 0, len(keep)
+        n = 0
+        for a in areas:
+            ok, d = sigmet_crosses_route(route, a, self.s.wx_corridor_nm)
+            if ok:
+                crossing.append(a)
+                live.append(sigwx_to_hazard(a, d))
+                n += 1
+        self.status["sigwx_error"] = None
+        return len(areas), n
 
     def _publish(self, route_id: str, live: list[dict]) -> dict:
         cur = self.m.forecast(route_id)
@@ -111,3 +161,5 @@ class WxService:
             except asyncio.CancelledError:
                 pass
         await self.client.close()
+        if self.wifs:
+            await self.wifs.close()

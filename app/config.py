@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     wx_contact: str = ""               # appended to the User-Agent (AWC asks for a custom UA)
     wx_fixture_dir: str = ""           # saved API responses for wx_mode=fixture
 
+    # --- WAFS SIGWX (WIFS API, NOAA AWC — needs an approved WIFS account) ---
+    wx_sigwx: str = "auto"             # auto: live with CS_WIFS_API_KEY, fixture when wx_mode=fixture, else off | live | fixture | off
+    wifs_api_key: str = ""             # X-API-Key from https://aviationweather.gov/wifs/account/ (valid 1 year)
+    wifs_centre: str = "kkci"          # kkci (WAFC Washington) | egrr (WAFC London)
+    wx_sigwx_hours: float = 12.0       # time steps fetched ahead (ICN-SFO is ~10.5 h)
+    wx_sigwx_fixture_dir: str = ""     # IWXXM files for wx_sigwx=fixture (default tests/fixtures/wifs)
+
     # --- insight text ---
     planner: str = "rule"              # rule | llm
     anthropic_api_key: str = ""
