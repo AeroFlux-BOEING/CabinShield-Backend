@@ -12,7 +12,7 @@ import { PLANS } from '../../CabinShield-Frontend/src/ai/cstModel';
 const out = './app/data/seed';
 mkdirSync(out, { recursive: true });
 const w = (f: string, o: unknown) => writeFileSync(`${out}/${f}`, JSON.stringify(o, null, 2) + '\n');
-w('schedule.json', Object.entries(SCHEDULE).map(([no, f]) => ({ flight_no: no, origin: f.from, destination: f.to, destination_name: f.toName, dep_local: f.dep, block_min: f.dur, aircraft: f.aircraft, aircraft_note: f.aircraftNote, days: f.days, supported: f.supported, route_id: `${f.from}-${f.to}` })));
+w('schedule.json', Object.entries(SCHEDULE).map(([no, f]) => ({ flight_no: no, origin: f.from, destination: f.to, destination_name: f.toName, dep_local: f.dep, block_min: f.dur, aircraft: f.aircraft, aircraft_note: f.aircraftNote, days: f.days, supported: f.supported, route_id: `${f.from}-${f.to}`, ...(f.real ? { airline: f.airline, real: true } : {}) })));
 w('protocol.json', { points: POINTS.map(p => ({ n: p.n, lead_s: p.lead, name: p.name, tag: p.tag, todo: p.todo, short: p.short, say_label: p.sayLabel, say: p.say })), stay: { todo: STAY.todo, say_label: STAY.sayLabel, say: STAY.say }, after: { todo: AFTER.todo, say_label: AFTER.sayLabel, say: AFTER.say } });
 w('history_ICN-SFO.json', HISTORY.map((h, i) => ({ id: `H${i + 1}`, d0_nm: +h.d0.toFixed(1), d1_nm: +h.d1.toFixed(1), name: h.name, cases: h.cases, fl_band: h.band, pattern: h.pattern, severity: h.sev, season: h.season })));
 w('places.json', { places: PLACES.map(([n, lat, lon, city]) => ({ name: n, lat, lon, city })), airports: AIRPORTS.map(([code, n, lat, lon]) => ({ code, name: n, lat, lon })) });

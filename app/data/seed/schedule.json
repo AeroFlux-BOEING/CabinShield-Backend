@@ -1,5 +1,162 @@
 [
   {
+    "flight_no": "UA806",
+    "origin": "ICN",
+    "destination": "SFO",
+    "destination_name": {
+      "ko": "샌프란시스코",
+      "en": "San Francisco"
+    },
+    "dep_local": "11:30",
+    "block_min": 640,
+    "aircraft": "B787-9",
+    "aircraft_note": {
+      "ko": "기내 모델: B787-9 · 승무원 10명 (데모)",
+      "en": "Cabin model: B787-9 · 10 crew (demo)"
+    },
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "supported": true,
+    "route_id": "ICN-SFO",
+    "airline": {
+      "ko": "유나이티드항공",
+      "en": "United Airlines"
+    },
+    "real": true
+  },
+  {
+    "flight_no": "KE023",
+    "origin": "ICN",
+    "destination": "SFO",
+    "destination_name": {
+      "ko": "샌프란시스코",
+      "en": "San Francisco"
+    },
+    "dep_local": "16:00",
+    "block_min": 640,
+    "aircraft": "B787-10",
+    "aircraft_note": {
+      "ko": "기내 모델: B787-9 · 승무원 10명 (데모)",
+      "en": "Cabin model: B787-9 · 10 crew (demo)"
+    },
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "supported": true,
+    "route_id": "ICN-SFO",
+    "airline": {
+      "ko": "대한항공",
+      "en": "Korean Air"
+    },
+    "real": true
+  },
+  {
+    "flight_no": "UA892",
+    "origin": "ICN",
+    "destination": "SFO",
+    "destination_name": {
+      "ko": "샌프란시스코",
+      "en": "San Francisco"
+    },
+    "dep_local": "16:50",
+    "block_min": 640,
+    "aircraft": "B787-9",
+    "aircraft_note": {
+      "ko": "기내 모델: B787-9 · 승무원 10명 (데모)",
+      "en": "Cabin model: B787-9 · 10 crew (demo)"
+    },
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "supported": true,
+    "route_id": "ICN-SFO",
+    "airline": {
+      "ko": "유나이티드항공",
+      "en": "United Airlines"
+    },
+    "real": true
+  },
+  {
+    "flight_no": "YP111",
+    "origin": "ICN",
+    "destination": "SFO",
+    "destination_name": {
+      "ko": "샌프란시스코",
+      "en": "San Francisco"
+    },
+    "dep_local": "18:55",
+    "block_min": 635,
+    "aircraft": "B787-9",
+    "aircraft_note": {
+      "ko": "기내 모델: B787-9 · 승무원 10명 (데모)",
+      "en": "Cabin model: B787-9 · 10 crew (demo)"
+    },
+    "days": [
+      0,
+      1,
+      3,
+      5
+    ],
+    "supported": true,
+    "route_id": "ICN-SFO",
+    "airline": {
+      "ko": "에어프레미아",
+      "en": "Air Premia"
+    },
+    "real": true
+  },
+  {
+    "flight_no": "OZ212",
+    "origin": "ICN",
+    "destination": "SFO",
+    "destination_name": {
+      "ko": "샌프란시스코",
+      "en": "San Francisco"
+    },
+    "dep_local": "20:50",
+    "block_min": 610,
+    "aircraft": "A350-900",
+    "aircraft_note": {
+      "ko": "기내 모델: B787-9 · 승무원 10명 (데모)",
+      "en": "Cabin model: B787-9 · 10 crew (demo)"
+    },
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "supported": true,
+    "route_id": "ICN-SFO",
+    "airline": {
+      "ko": "아시아나항공",
+      "en": "Asiana Airlines"
+    },
+    "real": true
+  },
+  {
     "flight_no": "AFX017",
     "origin": "ICN",
     "destination": "SFO",

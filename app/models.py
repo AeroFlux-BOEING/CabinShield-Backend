@@ -32,6 +32,8 @@ class ScheduledFlight(BaseModel):
     days: list[int] = Field(description="Operating weekdays, 0 = Sunday")
     supported: bool = Field(description="Route available in this demo")
     route_id: str
+    airline: Txt | None = Field(None, description="Operating airline (real flights only)")
+    real: bool = Field(False, description="Real, published flight (vs. a fictional AFX demo flight)")
 
 
 class ScheduleLookup(BaseModel):

@@ -128,3 +128,15 @@ def test_aircraft_feed_projects_position(client):
     p = get_route("ICN-SFO").pos_at(1200)
     s = client.post(f"/api/v1/flights/{fid}/position", json={"t_s": 9000, "lat": p.lat, "lon": p.lon, "gs_kt": 480}).json()
     assert abs(s["position"]["d_nm"] - 1200) < 1 and s["status"] == "IN_FLIGHT" and s["t_s"] == 9000
+
+
+def test_real_sfo_flights_in_schedule(client):
+    rows = {r["flight_no"]: r for r in client.get("/api/v1/schedule").json()}
+    for no in ("KE023", "UA892", "OZ212", "UA806", "YP111"):
+        assert rows[no]["real"] and rows[no]["route_id"] == "ICN-SFO" and rows[no]["supported"]
+    assert rows["AFX017"]["real"] is False and rows["AFX017"]["airline"] is None
+    r = client.get("/api/v1/schedule/ke-023", params={"date": "2026-11-19"}).json()
+    assert r["flight"]["airline"]["en"] == "Korean Air" and r["operates"]
+    f = client.post("/api/v1/flights", json={"flight_no": "OZ212", "date": "2026-11-19"})
+    assert f.status_code == 201 and f.json()["id"] == "OZ212-20261119" and f.json()["aircraft"] == "A350-900"
+    assert client.get("/api/v1/flights/OZ212-20261119/briefing").status_code == 200   # B787-9 cabin model fallback
